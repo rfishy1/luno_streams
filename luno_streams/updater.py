@@ -60,6 +60,14 @@ class Updater:
         self.asks = {x['id']: [Decimal(x['price']), Decimal(x['volume'])] for x in initial_data['asks']}
         self.bids = {x['id']: [Decimal(x['price']), Decimal(x['volume'])] for x in initial_data['bids']}
         logger.info(f'[{self.pair_code}] Initial state received.')
+        
+        # Execute the callbacks with the initial state
+        for fn in self.hooks:
+            args = [self.consolidated_order_book, []]
+            if asyncio.iscoroutinefunction(fn):
+                await fn(*args)
+            else:
+                fn(*args)
 
     async def run(self):
         await self.connect()
