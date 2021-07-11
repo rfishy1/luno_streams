@@ -44,7 +44,7 @@ to store results and proxy to other websockets.
 ## Hooks
 
 The `Updater` accepts a `hooks` parameter - a list of functions (can be async) that will be called
-whenever the order book is updated. This is where you will probably add some code to store
+whenever the order book is updated (and when it is intialised). This is where you will probably add some code to store
 the data in redis or do some calculations and make some API calls. 
 
 Each hook will receive two arguments:
