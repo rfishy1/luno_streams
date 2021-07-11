@@ -47,7 +47,7 @@ class Updater:
         self.time_last_connection_attempt = time.time()
 
         logger.info(f'[{self.pair_code}] Connecting to {self.url}...')
-        self.websocket = await websockets.connect(self.url)
+        self.websocket = await websockets.connect(self.url, max_size=2**30)
         # no error handling - if connection fails, let it raise websocket Exception
         await self.websocket.send(json.dumps({
             'api_key_id': self.api_key,
