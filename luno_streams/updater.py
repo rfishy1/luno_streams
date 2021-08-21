@@ -84,8 +84,8 @@ class Updater:
             logger.info(
                 f'[{self.pair_code}] Sequence broken: expected "{self.sequence+1}", received "{new_sequence}".'
             )
-            logger.info(f'[{self.pair_code}] Reconnecting...')
-            return await self.connect()
+            raise Exception(f'[{self.pair_code}] Sequence broken: expected "{self.sequence+1}", received "{new_sequence}".')
+
 
         self.sequence = new_sequence
 
