@@ -47,7 +47,7 @@ class Updater:
         self.time_last_connection_attempt = time.time()
 
         logger.info(f'[{self.pair_code}] Connecting to {self.url}...')
-        self.websocket = await websockets.connect(self.url, max_size=2**30)
+        self.websocket = await websockets.connect(self.url, max_size=2 ** 30)
         # no error handling - if connection fails, let it raise websocket Exception
         await self.websocket.send(json.dumps({
             'api_key_id': self.api_key,
@@ -60,7 +60,7 @@ class Updater:
         self.asks = {x['id']: [Decimal(x['price']), Decimal(x['volume'])] for x in initial_data['asks']}
         self.bids = {x['id']: [Decimal(x['price']), Decimal(x['volume'])] for x in initial_data['bids']}
         logger.info(f'[{self.pair_code}] Initial state received.')
-        
+
         # Execute the callbacks with the initial state
         for fn in self.hooks:
             args = [self.consolidated_order_book, []]
@@ -70,22 +70,27 @@ class Updater:
                 fn(*args)
 
     async def run(self):
-        await self.connect()
-        async for message in self.websocket:
-            if message == '""':
-                # keep alive
-                continue
-            await self.handle_message(message)
+        try:
+            await self.connect()
+            async for message in self.websocket:
+                if message == '""':
+                    # keep alive
+                    continue
+                await self.handle_message(message)
+        except Exception as e:
+            self.bids = {}
+            self.asks = {}
+            raise e
 
     async def handle_message(self, message):
         data = json.loads(message)
         new_sequence = int(data['sequence'])
         if new_sequence != self.sequence + 1:
             logger.info(
-                f'[{self.pair_code}] Sequence broken: expected "{self.sequence+1}", received "{new_sequence}".'
+                f'[{self.pair_code}] Sequence broken: expected "{self.sequence + 1}", received "{new_sequence}".'
             )
-            raise Exception(f'[{self.pair_code}] Sequence broken: expected "{self.sequence+1}", received "{new_sequence}".')
-
+            raise Exception(
+                f'[{self.pair_code}] Sequence broken: expected "{self.sequence + 1}", received "{new_sequence}".')
 
         self.sequence = new_sequence
 
@@ -149,16 +154,7 @@ class Updater:
     @property
     def consolidated_order_book(self):
 
-        def consolidate(orders, reverse=False):
-            price_map = defaultdict(Decimal)
-
-            for order in orders:
-                price_map[order[0]] += order[1]
-
-            rounded_list = map(lambda x: [round(x[0], ndigits=8), round(x[1], ndigits=8)], price_map.items())
-            return sorted(rounded_list, key=lambda a: a[0], reverse=reverse)
-
         return {
-            'bids': consolidate(self.bids.values(), reverse=True),  # highest bid on top
-            'asks': consolidate(self.asks.values()),  # lowest ask on top
+            'bids': list(self.bids.values()),
+            'asks': list(self.asks.values())
         }
